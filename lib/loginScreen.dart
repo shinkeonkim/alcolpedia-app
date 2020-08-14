@@ -17,16 +17,19 @@ class LoginRequest extends StatefulWidget {
 }
 
 class _LoginRequestState extends State<LoginRequest> {
-  TextEditingController _controller;
+  TextEditingController _usernameTextFieldController;
+  TextEditingController _passwordTextFieldController;
   MemberData user;
 
   void initState() {
     super.initState();
-    _controller = TextEditingController();
+    _usernameTextFieldController = TextEditingController();
+    _passwordTextFieldController = TextEditingController();
   }
 
   void dispose() {
-    _controller.dispose();
+    _usernameTextFieldController.dispose();
+    _passwordTextFieldController.dispose();
     super.dispose();
   }
 
@@ -50,72 +53,67 @@ class _LoginRequestState extends State<LoginRequest> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset : false,
+      backgroundColor: Colors.grey[800],
       body: Center(
         child: SafeArea(
-          child: Column(
-            children: [
-              SizedBox(
-                width: 200,
-                child: TextField(
-                  controller: _controller,
-                  onSubmitted: (String value) async {
-                    await showDialog<void>(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return AlertDialog(
-                          title: const Text('Thanks!'),
-                          content: Text('You typed "$value".'),
-                          actions: <Widget>[
-                            FlatButton(
-                              onPressed: () {
-                                Navigator.pop(context);
-                              },
-                              child: const Text('OK'),
-                            ),
-                          ],
-                        );
+          child: SizedBox(
+            width: 300,
+            height: 400,
+            child: Card(
+              color: Colors.white,
+              child: Column(
+                children: [
+                  SizedBox(
+                    height: 100,
+                  ),
+                  Padding(
+                    padding: EdgeInsets.only(
+                      top: 10,
+                      bottom: 10,
+                    ),
+                    child: SizedBox(
+                      width: 150,
+                      child: TextField(
+                        controller: _usernameTextFieldController,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.only(
+                      top: 10,
+                      bottom: 10,
+                    ),
+                    child: SizedBox(
+                      width: 150,
+                      child: TextField(
+                        obscureText: true,
+                        controller: _passwordTextFieldController,
+                      ),
+                    ),
+                  ),
+                  RaisedButton(
+                    child: Text('로그인'),
+                    onPressed: loginRequest,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: GestureDetector(
+                      onTap: (){
+                        Navigator.pushNamed(context, "/register");
                       },
-                    );
-                  },
-                ),
-              ),
-              SizedBox(
-                width: 200,
-                child: TextField(
-                  controller: _controller,
-                  onSubmitted: (String value) async {
-                    await showDialog<void>(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return AlertDialog(
-                          title: const Text('Thanks!'),
-                          content: Text('You typed "$value".'),
-                          actions: <Widget>[
-                            FlatButton(
-                              onPressed: () {
-                                Navigator.pop(context);
-                              },
-                              child: const Text('OK'),
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                  },
-                ),
-              ),
-              RaisedButton(
-                child: Text('로그인'),
-                onPressed: loginRequest,
-              ),
-              Text(
-                "회원가입을 아직 안하셨나요? 회원가입"
-              )
-            ],
-          ) 
+                      child: Text(
+                        "회원가입을 아직 안하셨나요? 회원가입",
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  )
+                ],
+              ) 
+            ),
+          )
         ),
       ),
-
     );
   }
 
