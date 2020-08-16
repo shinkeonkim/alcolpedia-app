@@ -1,135 +1,275 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MemberData {
-  String username = "";
-  String password = "";
-  String tocken = "";
+  String username = '';
+  String email = '';
+  String password1 = '';
+  String password2 = '';
 }
+
+class Member {
+  final String token;
+  final List email;
+  final List username;
+  final List password1;
+  final List password2;
+
+
+  Member ({this.token, this.email, this.username, this.password1, this.password2});
+
+  factory Member.fromJson(Map<String, dynamic> json) {
+    return Member(
+      token: json['token'] as String,
+      email: json['email'] as List,
+      username: json['username'] as List,
+      password1: json['password1'] as List,
+      password2: json['password2'] as List,
+
+    );
+  }
+}
+
 
 class RegisterRequest extends StatefulWidget {
-  @override
+  const RegisterRequest({Key key}) : super(key: key);
 
-  _RegisterRequestState createState() =>  _RegisterRequestState();
+  @override
+  _RegisterRequestState createState() => _RegisterRequestState();
 }
 
-class _RegisterRequestState extends State<RegisterRequest> {
-  TextEditingController _usernameTextFieldController;
-  TextEditingController _passwordTextFieldController;
-  TextEditingController _rePasswordTextFieldController;
-  MemberData user;
 
-  void initState() {
-    super.initState();
-    _usernameTextFieldController = TextEditingController();
-    _passwordTextFieldController = TextEditingController();
-    _rePasswordTextFieldController = TextEditingController();
-  }
+class PasswordField extends StatefulWidget {
+  const PasswordField({
+    this.fieldKey,
+    this.hintText,
+    this.labelText,
+    this.helperText,
+    this.onSaved,
+    this.validator,
+    this.onFieldSubmitted,
+  });
 
-  void dispose() {
-    _usernameTextFieldController.dispose();
-    _passwordTextFieldController.dispose();
-    _rePasswordTextFieldController.dispose();
-    super.dispose();
-  }
+  final Key fieldKey;
+  final String hintText;
+  final String labelText;
+  final String helperText;
+  final FormFieldSetter<String> onSaved;
+  final FormFieldValidator<String> validator;
+  final ValueChanged<String> onFieldSubmitted;
 
-  Future<String> registerRequest() async {
-    http.Response response = await http.post(
-      Uri.encodeFull('http://server.server/api/token/'), 
-      headers: <String, String>{
-      'Content-Type': 'application/json; charset=UTF-8',
-    },
-    body: jsonEncode(<String, String>{
-        "username": "singun119",
-        "password": "1234"
-        }
-      ), 
-    );
-    print(response.body);
-    // List data = jsonDecode(response.body);
-    return response.body;
-  }
+  @override
+  _PasswordFieldState createState() => _PasswordFieldState();
+}
+
+class _PasswordFieldState extends State<PasswordField> {
+  bool _obscureText = true;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomInset : false,
-      backgroundColor: Colors.grey[800],
-      body: Center(
-        child: SafeArea(
-          child: SizedBox(
-            width: 300,
-            height: 400,
-            child: Card(
-              color: Colors.white,
-              child: Column(
-                children: [
-                  SizedBox(
-                    height: 100,
-                  ),
-                  Padding(
-                    padding: EdgeInsets.only(
-                      top: 10,
-                      bottom: 10,
-                    ),
-                    child: SizedBox(
-                      width: 150,
-                      child: TextField(
-                        controller: _usernameTextFieldController,
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.only(
-                      top: 10,
-                      bottom: 10,
-                    ),
-                    child: SizedBox(
-                      width: 150,
-                      child: TextField(
-                        obscureText: true,
-                        controller: _passwordTextFieldController,
-                      ),
-                    ),
-                  ),Padding(
-                    padding: EdgeInsets.only(
-                      top: 10,
-                      bottom: 10,
-                    ),
-                    child: SizedBox(
-                      width: 150,
-                      child: TextField(
-                        obscureText: true,
-                        controller: _rePasswordTextFieldController,
-                      ),
-                    ),
-                  ),
-                  RaisedButton(
-                    child: Text('회원가입'),
-                    onPressed: registerRequest,
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(4),
-                    child: GestureDetector(
-                      onTap: (){
-                        Navigator.pop(context);
-                      },
-                      child: Text(
-                        "이미 회원가입이 되어있나요?",
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  )
-                ],
-              ) 
-            ),
-          )
+    return TextFormField(
+      key: widget.fieldKey,
+      obscureText: _obscureText,
+      cursorColor: Theme.of(context).cursorColor,
+      maxLength: 20,
+      onSaved: widget.onSaved,
+      validator: widget.validator,
+      onFieldSubmitted: widget.onFieldSubmitted,
+      decoration: InputDecoration(
+        filled: true,
+        hintText: widget.hintText,
+        labelText: widget.labelText,
+        helperText: widget.helperText,
+        suffixIcon: GestureDetector(
+          dragStartBehavior: DragStartBehavior.down,
+          onTap: () {
+            setState(() {
+              _obscureText = !_obscureText;
+            });
+          },
+          child: Icon(
+            _obscureText ? Icons.visibility : Icons.visibility_off,
+            // semanticLabel: _obscureText
+            //     ? GalleryLocalizations.of(context)
+            //         .demoTextFieldShowPasswordLabel
+            //     : GalleryLocalizations.of(context)
+            //         .demoTextFieldHidePasswordLabel,
+          ),
         ),
       ),
     );
   }
+}
 
+class _RegisterRequestState extends State<RegisterRequest> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  MemberData person = MemberData();
+
+  void showInSnackBar(String value) {
+    _scaffoldKey.currentState.hideCurrentSnackBar();
+    _scaffoldKey.currentState.showSnackBar(SnackBar(
+      content: Text(value),
+    ));
+  }
+
+  // Autovalidate _autoValidateMode = AutovalidateMode.disabled;
+
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final GlobalKey<FormFieldState<String>> _passwordFieldKey =
+      GlobalKey<FormFieldState<String>>();
+
+  Member fetchMember(String responseBody) {
+    final parsed = json.decode(responseBody).cast<String, dynamic>();
+    return Member.fromJson(parsed);
+  }
+
+
+  void _handleSubmitted() async {
+    final form = _formKey.currentState;
+    if (!form.validate()) {
+    //   _autoValidateMode =
+    //       AutovalidateMode.always; // Start validating on every change.
+      showInSnackBar(
+        "내용을 올바르게 작성해주세요.",
+      );
+      return;
+    } 
+    form.save();
+    http.Response response = await http.post(
+      Uri.encodeFull('http://server.server/rest-auth/registration/'), 
+      headers: <String, String>{
+      'Content-Type': 'application/json; charset=UTF-8',
+      },
+      body: jsonEncode(<String, String>{
+          "email" : person.email,
+          "username": person.username,
+          "password1": person.password1,
+          "password2": person.password2,
+        }
+      ), 
+    );
+
+    print(response.body);
+
+    Member ret = fetchMember(response.body);
+
+    print(ret.token);
+    print(ret.email);
+    print(ret.username);
+    print(ret.password1);
+    print(ret.password2);
+    return;
+  }
+
+  String _validateName(String value) {
+    if (value.isEmpty) {
+      return "유저명을 입력해주세요.";
+    }
+    return null;
+  }
+
+  String _validatePassword(String value) {
+    final passwordField = _passwordFieldKey.currentState;
+    if (passwordField.value == null || passwordField.value.isEmpty) {
+      return "비밀번호를 입력해주세요.";
+    }
+    if (passwordField.value != value) {
+      return "비밀번호가 서로 다릅니다.";
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cursorColor = Theme.of(context).cursorColor;
+    const sizedBoxSpace = SizedBox(height: 24);
+
+    return Scaffold(
+      key: _scaffoldKey,
+      body: Form(
+        key: _formKey,
+        // autovalidate: _autoValidateMode,
+        child: Scrollbar(
+          child: SingleChildScrollView(
+            dragStartBehavior: DragStartBehavior.down,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                sizedBoxSpace,
+                TextFormField(
+                  textCapitalization: TextCapitalization.words,
+                  cursorColor: cursorColor,
+                  decoration: InputDecoration(
+                    filled: true,
+                    icon: const Icon(Icons.person),
+                    hintText: "이름",
+                    labelText: "이름",
+                  ),
+                  onSaved: (value) {
+                    person.username = value;
+                  },
+                  validator: _validateName,
+                ),
+                sizedBoxSpace,
+                TextFormField(
+                  cursorColor: cursorColor,
+                  decoration: InputDecoration(
+                    filled: true,
+                    icon: const Icon(Icons.email),
+                    hintText: "이메일 주소",
+                    labelText:"이메일",
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                  onSaved: (value) {
+                    person.email = value;
+                  },
+                ),
+                sizedBoxSpace,
+                PasswordField(
+                  fieldKey: _passwordFieldKey,
+                  helperText: "",
+                  labelText: "비밀번호",
+                  onFieldSubmitted: (value) {
+                    setState(() {
+                      person.password1 = value;
+                    });
+                  },
+                ),
+                sizedBoxSpace,
+                TextFormField(
+                  cursorColor: cursorColor,
+                  decoration: InputDecoration(
+                    filled: true,
+                    labelText: "비밀번호 확인",
+                  ),
+                  maxLength: 20,
+                  obscureText: true,
+                  validator: _validatePassword,
+                  onFieldSubmitted: (value) {
+                    setState(() {
+                      person.password2 = value;
+                    });
+                  },
+                ),
+                sizedBoxSpace,
+                Center(
+                  child: RaisedButton(
+                    child: Text("제출"),
+                    onPressed: _handleSubmitted,
+                  ),
+                ),
+                sizedBoxSpace,
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
