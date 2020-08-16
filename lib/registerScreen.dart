@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -52,6 +53,7 @@ class PasswordField extends StatefulWidget {
     this.onSaved,
     this.validator,
     this.onFieldSubmitted,
+    this.controller,
   });
 
   final Key fieldKey;
@@ -61,6 +63,7 @@ class PasswordField extends StatefulWidget {
   final FormFieldSetter<String> onSaved;
   final FormFieldValidator<String> validator;
   final ValueChanged<String> onFieldSubmitted;
+  final TextEditingController controller;
 
   @override
   _PasswordFieldState createState() => _PasswordFieldState();
@@ -72,6 +75,7 @@ class _PasswordFieldState extends State<PasswordField> {
   @override
   Widget build(BuildContext context) {
     return TextFormField(
+      controller: widget.controller,
       key: widget.fieldKey,
       obscureText: _obscureText,
       cursorColor: Theme.of(context).cursorColor,
@@ -108,6 +112,11 @@ class _PasswordFieldState extends State<PasswordField> {
 class _RegisterRequestState extends State<RegisterRequest> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
+  TextEditingController _usernameController = TextEditingController();
+  TextEditingController _emailController = TextEditingController();
+  TextEditingController _password1Controller = TextEditingController();
+  TextEditingController _password2Controller = TextEditingController();
+
   MemberData person = MemberData();
 
   void showInSnackBar(String value) {
@@ -141,7 +150,7 @@ class _RegisterRequestState extends State<RegisterRequest> {
     } 
     form.save();
     http.Response response = await http.post(
-      Uri.encodeFull('http://server.server/rest-auth/registration/'), 
+      Uri.encodeFull('http://6f0a909d2095.ngrok.io/rest-auth/registration/'), 
       headers: <String, String>{
       'Content-Type': 'application/json; charset=UTF-8',
       },
@@ -158,6 +167,23 @@ class _RegisterRequestState extends State<RegisterRequest> {
 
     Member ret = fetchMember(response.body);
 
+    if(ret.token == null || ret.token == "") {
+      if(ret.email != null) {
+        Fluttertoast.showToast(msg: ret.email[0]);
+      }
+      else if(ret.username != null) {
+        Fluttertoast.showToast(msg: ret.username[0]);
+      }
+      else if(ret.password1 != null) {
+        Fluttertoast.showToast(msg: ret.password1[0]);
+      }
+      else if(ret.password2 != null) {
+        Fluttertoast.showToast(msg: ret.password2[0]);
+      }
+    }
+    else {
+      
+    }
     print(ret.token);
     print(ret.email);
     print(ret.username);
@@ -203,13 +229,14 @@ class _RegisterRequestState extends State<RegisterRequest> {
               children: [
                 sizedBoxSpace,
                 TextFormField(
+                  controller: _usernameController,
                   textCapitalization: TextCapitalization.words,
                   cursorColor: cursorColor,
                   decoration: InputDecoration(
                     filled: true,
                     icon: const Icon(Icons.person),
-                    hintText: "이름",
-                    labelText: "이름",
+                    hintText: "유저명",
+                    labelText: "유저명",
                   ),
                   onSaved: (value) {
                     person.username = value;
@@ -218,6 +245,7 @@ class _RegisterRequestState extends State<RegisterRequest> {
                 ),
                 sizedBoxSpace,
                 TextFormField(
+                  controller: _emailController,
                   cursorColor: cursorColor,
                   decoration: InputDecoration(
                     filled: true,
@@ -232,6 +260,7 @@ class _RegisterRequestState extends State<RegisterRequest> {
                 ),
                 sizedBoxSpace,
                 PasswordField(
+                  controller: _password1Controller,
                   fieldKey: _passwordFieldKey,
                   helperText: "",
                   labelText: "비밀번호",
@@ -243,6 +272,7 @@ class _RegisterRequestState extends State<RegisterRequest> {
                 ),
                 sizedBoxSpace,
                 TextFormField(
+                  controller: _password2Controller,
                   cursorColor: cursorColor,
                   decoration: InputDecoration(
                     filled: true,
