@@ -1,12 +1,16 @@
+import 'package:alcolpedia/StandByScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:alcolpedia/registerScreen.dart';
 import 'package:alcolpedia/loginScreen.dart';
+import 'package:alcolpedia/MainScreen.dart';
+
 
 void main() {
-  runApp(MyApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(Alcolpedia());
 }
 
-class MyApp extends StatelessWidget {
+class Alcolpedia extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
@@ -14,9 +18,11 @@ class MyApp extends StatelessWidget {
       title: 'alcolpedia',
       initialRoute: "/",
       routes: {
-        "/" : (context) => LoginRequest(),
-        // "/login" : (context) => Loginrequest(),
+        "/" : (context) => StandByScreen(),
+        "/login" : (context) => LoginRequest(),
         "/register": (context) => RegisterRequest(),
+        "/standby": (context) => StandByScreen(),
+        "/main": (context) => MainScreen(),
       },
     );
   }

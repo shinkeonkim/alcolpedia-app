@@ -1,10 +1,12 @@
+import 'package:alcolpedia/settings.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'dart:convert' show json, base64, ascii;
 
 class MemberData {
   String username = '';
@@ -150,15 +152,15 @@ class _RegisterRequestState extends State<RegisterRequest> {
     } 
     form.save();
     http.Response response = await http.post(
-      Uri.encodeFull('http://6f0a909d2095.ngrok.io/rest-auth/registration/'), 
+      Uri.encodeFull(Settings().apiServer+'rest-auth/registration/'), 
       headers: <String, String>{
       'Content-Type': 'application/json; charset=UTF-8',
       },
       body: jsonEncode(<String, String>{
-          "email" : person.email,
-          "username": person.username,
-          "password1": person.password1,
-          "password2": person.password2,
+          "email" : _emailController.text,
+          "username": _usernameController.text,
+          "password1": _password1Controller.text,
+          "password2": _password2Controller.text,
         }
       ), 
     );
@@ -182,13 +184,11 @@ class _RegisterRequestState extends State<RegisterRequest> {
       }
     }
     else {
-      
+      print("success...");
+      final storage = FlutterSecureStorage();
+      storage.write(key: "token", value: ret.token);
+      Navigator.popAndPushNamed(context, "/main");
     }
-    print(ret.token);
-    print(ret.email);
-    print(ret.username);
-    print(ret.password1);
-    print(ret.password2);
     return;
   }
 
@@ -213,89 +213,119 @@ class _RegisterRequestState extends State<RegisterRequest> {
   @override
   Widget build(BuildContext context) {
     final cursorColor = Theme.of(context).cursorColor;
-    const sizedBoxSpace = SizedBox(height: 24);
+    const sizedBoxSpace = SizedBox(height: 20);
 
     return Scaffold(
       key: _scaffoldKey,
-      body: Form(
-        key: _formKey,
-        // autovalidate: _autoValidateMode,
-        child: Scrollbar(
-          child: SingleChildScrollView(
-            dragStartBehavior: DragStartBehavior.down,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                sizedBoxSpace,
-                TextFormField(
-                  controller: _usernameController,
-                  textCapitalization: TextCapitalization.words,
-                  cursorColor: cursorColor,
-                  decoration: InputDecoration(
-                    filled: true,
-                    icon: const Icon(Icons.person),
-                    hintText: "유저명",
-                    labelText: "유저명",
+      backgroundColor: Colors.grey[800],
+      body: SafeArea(
+        child: Center(
+          child: SizedBox(
+            width: 300,
+            height: 500,
+            child: Card(
+              child: Form(
+                key: _formKey,
+                // autovalidate: _autoValidateMode,
+                child: Scrollbar(
+                  child: SingleChildScrollView(
+                    dragStartBehavior: DragStartBehavior.down,
+                    padding: const EdgeInsets.symmetric(horizontal: 13),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        sizedBoxSpace,
+                        TextFormField(
+                          controller: _usernameController,
+                          textCapitalization: TextCapitalization.words,
+                          cursorColor: cursorColor,
+                          decoration: InputDecoration(
+                            filled: true,
+                            icon: const Icon(Icons.person),
+                            hintText: "유저명",
+                            labelText: "유저명",
+                          ),
+                          onSaved: (value) {
+                            person.username = value;
+                          },
+                          onChanged: (value) {
+                            person.username = value;
+                          },
+                          validator: _validateName,
+                        ),
+                        sizedBoxSpace,
+                        TextFormField(
+                          controller: _emailController,
+                          cursorColor: cursorColor,
+                          decoration: InputDecoration(
+                            filled: true,
+                            icon: const Icon(Icons.email),
+                            hintText: "이메일 주소",
+                            labelText:"이메일",
+                          ),
+                          keyboardType: TextInputType.emailAddress,
+                          onSaved: (value) {
+                            person.email = value;
+                          },
+                          onChanged: (value) {
+                            person.email = value;
+                          },
+                        ),
+                        sizedBoxSpace,
+                        PasswordField(
+                          controller: _password1Controller,
+                          fieldKey: _passwordFieldKey,
+                          helperText: "",
+                          labelText: "비밀번호",
+                          onFieldSubmitted: (value) {
+                            setState(() {
+                              person.password1 = value;
+                            });
+                          },
+                        ),
+                        sizedBoxSpace,
+                        TextFormField(
+                          controller: _password2Controller,
+                          cursorColor: cursorColor,
+                          decoration: InputDecoration(
+                            filled: true,
+                            labelText: "비밀번호 확인",
+                          ),
+                          maxLength: 20,
+                          obscureText: true,
+                          validator: _validatePassword,
+                          onFieldSubmitted: (value) {
+                            person.password2 = value;
+                          },
+                          onChanged: (value) {
+                            person.password2 = value;
+                          },
+                        ),
+                        sizedBoxSpace,
+                        Center(
+                          child: RaisedButton(
+                            child: Text("제출"),
+                            onPressed: _handleSubmitted,
+                          ),
+                        ),
+                        sizedBoxSpace,
+                        Padding(
+                            padding: const EdgeInsets.all(2),
+                            child: GestureDetector(
+                              onTap: (){
+                                Navigator.pop(context);
+                              },
+                              child: Text(
+                                "이미 가입되어있나요? 로그인",
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          )
+                      ],
+                    ),
                   ),
-                  onSaved: (value) {
-                    person.username = value;
-                  },
-                  validator: _validateName,
                 ),
-                sizedBoxSpace,
-                TextFormField(
-                  controller: _emailController,
-                  cursorColor: cursorColor,
-                  decoration: InputDecoration(
-                    filled: true,
-                    icon: const Icon(Icons.email),
-                    hintText: "이메일 주소",
-                    labelText:"이메일",
-                  ),
-                  keyboardType: TextInputType.emailAddress,
-                  onSaved: (value) {
-                    person.email = value;
-                  },
-                ),
-                sizedBoxSpace,
-                PasswordField(
-                  controller: _password1Controller,
-                  fieldKey: _passwordFieldKey,
-                  helperText: "",
-                  labelText: "비밀번호",
-                  onFieldSubmitted: (value) {
-                    setState(() {
-                      person.password1 = value;
-                    });
-                  },
-                ),
-                sizedBoxSpace,
-                TextFormField(
-                  controller: _password2Controller,
-                  cursorColor: cursorColor,
-                  decoration: InputDecoration(
-                    filled: true,
-                    labelText: "비밀번호 확인",
-                  ),
-                  maxLength: 20,
-                  obscureText: true,
-                  validator: _validatePassword,
-                  onFieldSubmitted: (value) {
-                    setState(() {
-                      person.password2 = value;
-                    });
-                  },
-                ),
-                sizedBoxSpace,
-                Center(
-                  child: RaisedButton(
-                    child: Text("제출"),
-                    onPressed: _handleSubmitted,
-                  ),
-                ),
-                sizedBoxSpace,
-              ],
+              ),
             ),
           ),
         ),
